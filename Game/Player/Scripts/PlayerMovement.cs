@@ -17,6 +17,9 @@ public class PlayerMovement : MonoBehaviour
     [Header("Jump Buffer")]
     [SerializeField] private float jumpBufferTime = 0.15f;
 
+    [Header("Coyote Time")]
+    [SerializeField] private float coyoteTime = 0.15f;
+
     private Rigidbody2D rb;
     private Animator animator;
     private SpriteRenderer spriteRenderer;
@@ -25,6 +28,7 @@ public class PlayerMovement : MonoBehaviour
     private bool isRunning;
     private bool isGrounded;
     private float jumpBufferCounter;
+    private float coyoteTimeCounter;
 
     private void Awake()
     {
@@ -37,6 +41,7 @@ public class PlayerMovement : MonoBehaviour
     {
         HandleInput();
         CheckGround();
+        UpdateCoyoteTime();
         UpdateAnimations();
         HandleFacing();
     }
@@ -78,7 +83,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleJump()
     {
-        if (jumpBufferCounter > 0f && isGrounded)
+        if (jumpBufferCounter > 0f && coyoteTimeCounter > 0f)
         {
             rb.velocity = new Vector2(
                 rb.velocity.x,
@@ -86,6 +91,7 @@ public class PlayerMovement : MonoBehaviour
             );
 
             jumpBufferCounter = 0f;
+            coyoteTimeCounter = 0f;
             isGrounded = false;
         }
     }
@@ -105,6 +111,18 @@ public class PlayerMovement : MonoBehaviour
             spriteRenderer.flipX = false;
         else if (moveInput < 0)
             spriteRenderer.flipX = true;
+    }
+
+    private void UpdateCoyoteTime()
+    {
+        if (isGrounded)
+        {
+            coyoteTimeCounter = coyoteTime;
+        }
+        else
+        {
+            coyoteTimeCounter -= Time.deltaTime;
+        }
     }
 
     private void UpdateAnimations()
