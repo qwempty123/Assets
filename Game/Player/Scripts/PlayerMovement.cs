@@ -28,6 +28,7 @@ public class PlayerMovement : MonoBehaviour
     private Rigidbody2D rb;
     private Animator animator;
     private SpriteRenderer spriteRenderer;
+    private PlayerCombat playerCombat;
 
     private float moveInput;
     private bool isRunning;
@@ -41,6 +42,7 @@ public class PlayerMovement : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        playerCombat = GetComponent<PlayerCombat>();
     }
 
     private void Update()
@@ -138,6 +140,10 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleFacing()
     {
+        // Не поворачиваемся во время атаки.
+        if (playerCombat != null && playerCombat.IsAttacking)
+            return;
+
         if (moveInput > 0)
             spriteRenderer.flipX = false;
         else if (moveInput < 0)

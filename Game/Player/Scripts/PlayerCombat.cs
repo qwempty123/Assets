@@ -16,24 +16,37 @@ public class PlayerCombat : MonoBehaviour
     [SerializeField] private string attack1StateName = "Attack1";
     [SerializeField] private string attack2StateName = "Attack2";
 
+    [Header("Hitbox")]
+    [SerializeField] private AttackHitbox attackHitbox;
+
     private Animator animator;
+    private SpriteRenderer spriteRenderer;
 
     private bool attackInProgress;
     private bool attackStateEntered;
     private bool comboQueued;
     private bool attack2Triggered;
 
+    private bool lockedFacing;
+
+    private int attackDirection;
     private int currentAttack;
+
+    public bool IsAttacking => attackInProgress;
 
     private void Awake()
     {
         animator = GetComponent<Animator>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
     private void Update()
     {
         HandleAttackInput();
         UpdateAttackState();
+
+        if (attackInProgress)
+            spriteRenderer.flipX = lockedFacing;
     }
 
     private void HandleAttackInput()
@@ -41,14 +54,12 @@ public class PlayerCombat : MonoBehaviour
         if (!Input.GetMouseButtonDown(0))
             return;
 
-        // Начинаем новую комбинацию.
         if (!attackInProgress)
         {
             StartFirstAttack();
             return;
         }
 
-        // Во время первой атаки разрешаем поставить вторую в очередь.
         if (currentAttack == 1 && !attack2Triggered)
         {
             comboQueued = true;
@@ -65,6 +76,16 @@ public class PlayerCombat : MonoBehaviour
 
         currentAttack = 1;
 
+        // Запоминаем направление персонажа.
+        lockedFacing = spriteRenderer.flipX;
+        attackDirection = lockedFacing ? -1 : 1;
+
+        if (attackHitbox != null)
+        {
+            attackHitbox.DisableHitbox();
+            attackHitbox.SetFacingDirection(attackDirection);
+        }
+
         animator.ResetTrigger(attack1Trigger);
         animator.ResetTrigger(attack2Trigger);
 
@@ -76,18 +97,15 @@ public class PlayerCombat : MonoBehaviour
         if (!attackInProgress)
             return;
 
-        AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+        AnimatorStateInfo state =
+            animator.GetCurrentAnimatorStateInfo(0);
 
         bool inAttack1 = state.IsName(attack1StateName);
         bool inAttack2 = state.IsName(attack2StateName);
 
-        // Ждём, пока Animator действительно войдёт в атаку.
         if (inAttack1 || inAttack2)
-        {
             attackStateEntered = true;
-        }
 
-        // Проверяем возможность перехода ко второй атаке.
         if (currentAttack == 1 &&
             inAttack1 &&
             comboQueued &&
@@ -97,7 +115,6 @@ public class PlayerCombat : MonoBehaviour
             StartSecondAttack();
         }
 
-        // Завершаем комбинацию, когда Animator вернулся к обычному состоянию.
         if (attackStateEntered &&
             !animator.IsInTransition(0) &&
             !inAttack1 &&
@@ -126,5 +143,22 @@ public class PlayerCombat : MonoBehaviour
         attack2Triggered = false;
 
         currentAttack = 0;
+
+        if (attackHitbox != null)
+            attackHitbox.DisableHitbox();
+    }
+
+    // Эти методы вызываются Animation Events.
+
+    public void EnableHitbox()
+    {
+        if (attackHitbox != null)
+            attackHitbox.EnableHitbox();
+    }
+
+    public void DisableHitbox()
+    {
+        if (attackHitbox != null)
+            attackHitbox.DisableHitbox();
     }
 }
