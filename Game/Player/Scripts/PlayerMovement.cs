@@ -20,6 +20,11 @@ public class PlayerMovement : MonoBehaviour
     [Header("Coyote Time")]
     [SerializeField] private float coyoteTime = 0.15f;
 
+    [Header("Jump Control")]
+    [SerializeField] private float jumpCutMultiplier = 0.5f;
+
+
+
     private Rigidbody2D rb;
     private Animator animator;
     private SpriteRenderer spriteRenderer;
@@ -29,6 +34,7 @@ public class PlayerMovement : MonoBehaviour
     private bool isGrounded;
     private float jumpBufferCounter;
     private float coyoteTimeCounter;
+    private bool jumpCutQueued;
 
     private void Awake()
     {
@@ -50,6 +56,7 @@ public class PlayerMovement : MonoBehaviour
     {
         Move();
         HandleJump();
+        HandleJumpCut();
     }
 
     private void HandleInput()
@@ -68,6 +75,15 @@ public class PlayerMovement : MonoBehaviour
         else
         {
             jumpBufferCounter -= Time.deltaTime;
+        }
+
+        // Обрабатываем отпускание кнопки прыжка
+        if (Input.GetKeyUp(KeyCode.Space))
+        {
+            if (rb.velocity.y > 0.01f)
+            {
+                jumpCutQueued = true;
+            }
         }
     }
 
@@ -94,6 +110,21 @@ public class PlayerMovement : MonoBehaviour
             coyoteTimeCounter = 0f;
             isGrounded = false;
         }
+    }
+
+    private void HandleJumpCut()
+    {
+        if (!jumpCutQueued) return;
+
+        if (rb.velocity.y > 0f)
+        {
+            rb.velocity = new Vector2(
+                rb.velocity.x,
+                rb.velocity.y * jumpCutMultiplier
+            );
+        }
+
+        jumpCutQueued = false;
     }
 
     private void CheckGround()
