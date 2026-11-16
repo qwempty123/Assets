@@ -23,7 +23,10 @@ public class PlayerMovement : MonoBehaviour
     [Header("Jump Control")]
     [SerializeField] private float jumpCutMultiplier = 0.5f;
 
-
+    [Header("Dash")]
+    [SerializeField] private float dashSpeed = 12f;
+    [SerializeField] private float dashDuration = 0.18f;
+    [SerializeField] private float dashCooldown = 0.6f;
 
     private Rigidbody2D rb;
     private Animator animator;
@@ -33,9 +36,18 @@ public class PlayerMovement : MonoBehaviour
     private float moveInput;
     private bool isRunning;
     private bool isGrounded;
+
     private float jumpBufferCounter;
     private float coyoteTimeCounter;
     private bool jumpCutQueued;
+
+    private bool isDashing;
+    private float dashTimer;
+    private float dashCooldownCounter;
+    private float originalGravityScale;
+    private int dashDirection;
+
+    public bool IsDashing => isDashing;
 
     private void Awake()
     {
@@ -48,14 +60,23 @@ public class PlayerMovement : MonoBehaviour
     private void Update()
     {
         HandleInput();
+        HandleDashInput();
+
         CheckGround();
         UpdateCoyoteTime();
+
         UpdateAnimations();
         HandleFacing();
     }
 
     private void FixedUpdate()
     {
+        if (isDashing)
+        {
+            UpdateDash();
+            return;
+        }
+
         Move();
         HandleJump();
         HandleJumpCut();
@@ -69,7 +90,6 @@ public class PlayerMovement : MonoBehaviour
             Input.GetKey(KeyCode.LeftShift) ||
             Input.GetKey(KeyCode.RightShift);
 
-        // Запоминаем нажатие прыжка
         if (Input.GetKeyDown(KeyCode.Space))
         {
             jumpBufferCounter = jumpBufferTime;
@@ -79,7 +99,6 @@ public class PlayerMovement : MonoBehaviour
             jumpBufferCounter -= Time.deltaTime;
         }
 
-        // Обрабатываем отпускание кнопки прыжка
         if (Input.GetKeyUp(KeyCode.Space))
         {
             if (rb.velocity.y > 0.01f)
@@ -87,6 +106,8 @@ public class PlayerMovement : MonoBehaviour
                 jumpCutQueued = true;
             }
         }
+
+        dashCooldownCounter -= Time.deltaTime;
     }
 
     private void Move()
@@ -97,6 +118,77 @@ public class PlayerMovement : MonoBehaviour
             moveInput * currentSpeed,
             rb.velocity.y
         );
+    }
+
+    private void HandleDashInput()
+    {
+        if (!Input.GetMouseButtonDown(1))
+            return;
+
+        if (isDashing || dashCooldownCounter > 0f)
+            return;
+
+        if (playerCombat != null && playerCombat.IsAttacking)
+            return;
+
+        StartDash();
+    }
+
+    private void StartDash()
+    {
+        isDashing = true;
+
+        dashTimer = dashDuration;
+        dashCooldownCounter = dashCooldown;
+
+        originalGravityScale = rb.gravityScale;
+
+        // Фиксируем направление рывка.
+        if (Mathf.Abs(moveInput) > 0.01f)
+        {
+            dashDirection = moveInput > 0 ? 1 : -1;
+        }
+        else
+        {
+            dashDirection = spriteRenderer.flipX ? -1 : 1;
+        }
+
+        spriteRenderer.flipX = dashDirection < 0;
+
+        // Во время Dash не действуют обычная гравитация
+        // и вертикальная скорость.
+        rb.gravityScale = 0f;
+        rb.velocity = new Vector2(dashDirection * dashSpeed, 0f);
+
+        animator.SetBool("IsDashing", true);
+    }
+
+    private void UpdateDash()
+    {
+        dashTimer -= Time.fixedDeltaTime;
+
+        if (dashTimer <= 0f)
+        {
+            EndDash();
+        }
+    }
+
+    public void CancelDash()
+    {
+        if (!isDashing)
+            return;
+
+        EndDash();
+    }
+
+    private void EndDash()
+    {
+        isDashing = false;
+
+        rb.gravityScale = originalGravityScale;
+        rb.velocity = Vector2.zero;
+
+        animator.SetBool("IsDashing", false);
     }
 
     private void HandleJump()
@@ -140,7 +232,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleFacing()
     {
-        // Не поворачиваемся во время атаки.
+        if (isDashing)
+            return;
+
         if (playerCombat != null && playerCombat.IsAttacking)
             return;
 

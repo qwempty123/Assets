@@ -13,14 +13,15 @@ public class PlayerCombat : MonoBehaviour
     [SerializeField] private float comboStartTime = 0.75f;
 
     [Header("Animator States")]
-    [SerializeField] private string attack1StateName = "Attack1";
-    [SerializeField] private string attack2StateName = "Attack2";
+    [SerializeField] private string attack1StateName = "Player_attack1";
+    [SerializeField] private string attack2StateName = "Player_attack2";
 
     [Header("Hitbox")]
     [SerializeField] private AttackHitbox attackHitbox;
 
     private Animator animator;
     private SpriteRenderer spriteRenderer;
+    private PlayerMovement playerMovement;
 
     private bool attackInProgress;
     private bool attackStateEntered;
@@ -38,6 +39,7 @@ public class PlayerCombat : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        playerMovement = GetComponent<PlayerMovement>();
     }
 
     private void Update()
@@ -56,6 +58,10 @@ public class PlayerCombat : MonoBehaviour
 
         if (!attackInProgress)
         {
+            // Атака прерывает Dash.
+            if (playerMovement != null)
+                playerMovement.CancelDash();
+
             StartFirstAttack();
             return;
         }
@@ -76,7 +82,6 @@ public class PlayerCombat : MonoBehaviour
 
         currentAttack = 1;
 
-        // Запоминаем направление персонажа.
         lockedFacing = spriteRenderer.flipX;
         attackDirection = lockedFacing ? -1 : 1;
 
@@ -147,8 +152,6 @@ public class PlayerCombat : MonoBehaviour
         if (attackHitbox != null)
             attackHitbox.DisableHitbox();
     }
-
-    // Эти методы вызываются Animation Events.
 
     public void EnableHitbox()
     {
