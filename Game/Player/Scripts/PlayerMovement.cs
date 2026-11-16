@@ -267,6 +267,11 @@ public class PlayerMovement : MonoBehaviour
 
         animator.SetFloat("Speed", animationSpeed);
         animator.SetBool("IsGrounded", isGrounded);
+
+        animator.SetBool(
+        "IsFalling",
+        !isGrounded && rb.velocity.y < -0.1f && !isDashing
+    );
     }
 
     private void OnDrawGizmosSelected()
