@@ -1,3 +1,4 @@
+
 using System.Collections;
 using UnityEngine;
 
@@ -19,6 +20,7 @@ public class EnemyHealth : MonoBehaviour
     private Color originalColor;
 
     private Coroutine flashCoroutine;
+    private MemorialGuardAI guardAI;
 
     private void Awake()
     {
@@ -31,6 +33,8 @@ public class EnemyHealth : MonoBehaviour
 
         if (spriteRenderer != null)
             originalColor = spriteRenderer.color;
+
+        guardAI = GetComponent<MemorialGuardAI>();
     }
 
     public void TakeDamage(int damage)
@@ -48,7 +52,13 @@ public class EnemyHealth : MonoBehaviour
         SpawnBloodEffect();
 
         if (currentHealth <= 0)
+        {
             Die();
+            return;
+        }
+
+        if (guardAI != null)
+            guardAI.OnDamaged();
     }
 
     private void FlashWhite()

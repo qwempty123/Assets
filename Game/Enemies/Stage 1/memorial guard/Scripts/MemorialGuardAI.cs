@@ -14,7 +14,8 @@ public class MemorialGuardAI : MonoBehaviour
         BackDash,
         Attack,
         LongAttack,
-        AfterAttack
+        AfterAttack,
+        HitReaction
     }
 
     [Header("Player")]
@@ -68,6 +69,12 @@ public class MemorialGuardAI : MonoBehaviour
     [SerializeField] private float longAttackLungeDuration = 0.25f;
     [SerializeField] private EnemyAttackHitbox longAttackHitbox;
 
+    [Header("Hit Reaction")]
+    [SerializeField] private string hitReactionAnimation = "MG_Hit";
+    [SerializeField] private float hitReactionFallbackDuration = 0.4f;
+    [SerializeField] private float hitKnockbackSpeed = 2.5f;
+    [SerializeField] private float hitKnockbackDuration = 0.12f;
+
     [Header("Recovery")]
     [SerializeField] private float afterAttackFallbackDuration = 0.8f;
     [SerializeField] private float blockedChaseTimeout = 1.5f;
@@ -94,6 +101,7 @@ public class MemorialGuardAI : MonoBehaviour
     private int moveDirection;
     private int facingDirection = 1;
     private int backDashDirection;
+    private int hitKnockbackDirection;
 
     private float currentMoveSpeed;
     private float pauseTimer;
@@ -106,6 +114,7 @@ public class MemorialGuardAI : MonoBehaviour
     private float blockedChaseTimer;
     private float backDashMoveEndTime;
     private float longAttackMoveEndTime;
+    private float hitKnockbackEndTime;
 
     private bool isPatrolPaused;
     private bool hasTarget;
@@ -167,6 +176,10 @@ public class MemorialGuardAI : MonoBehaviour
             case State.AfterAttack:
                 UpdateAfterAttack();
                 break;
+
+            case State.HitReaction:
+                UpdateHitReaction();
+                break;
         }
     }
 
@@ -174,8 +187,14 @@ public class MemorialGuardAI : MonoBehaviour
     {
         float horizontalVelocity = moveDirection * currentMoveSpeed;
 
-        if (currentState == State.BackDash &&
-            Time.time < backDashMoveEndTime)
+        if (currentState == State.HitReaction &&
+            Time.time < hitKnockbackEndTime)
+        {
+            horizontalVelocity =
+                hitKnockbackDirection * hitKnockbackSpeed;
+        }
+        else if (currentState == State.BackDash &&
+                 Time.time < backDashMoveEndTime)
         {
             if (CanMove(backDashDirection))
                 horizontalVelocity = backDashDirection * backDashSpeed;
@@ -198,7 +217,8 @@ public class MemorialGuardAI : MonoBehaviour
         if (currentState == State.Attack ||
             currentState == State.LongAttack ||
             currentState == State.BackDash ||
-            currentState == State.AfterAttack)
+            currentState == State.AfterAttack ||
+            currentState == State.HitReaction)
             return;
 
         float distance = Vector2.Distance(transform.position, player.position);
@@ -327,10 +347,6 @@ public class MemorialGuardAI : MonoBehaviour
         bool playerIsAttacking =
             playerCombat != null && playerCombat.IsAttacking;
 
-        // Сценарий 1:
-        // Игрок атакует рядом.
-        // 45% шанс BackDash.
-        // После успешного BackDash — отдельный шанс LongAttack.
         if (playerIsAttacking)
         {
             observedPlayerInAttackRange = false;
@@ -356,10 +372,6 @@ public class MemorialGuardAI : MonoBehaviour
         {
             observedPlayerAttack = false;
 
-            // Сценарий 2:
-            // Игрок стоит в радиусе обычной атаки.
-            // 10% шанс BackDash.
-            // После успешного BackDash — отдельный шанс LongAttack.
             if (distanceX > attackRange)
             {
                 observedPlayerInAttackRange = false;
@@ -381,7 +393,6 @@ public class MemorialGuardAI : MonoBehaviour
             }
         }
 
-        // Обычная атака.
         if (distanceX <= attackRange &&
             distanceY <= verticalDetectionTolerance)
         {
@@ -394,7 +405,6 @@ public class MemorialGuardAI : MonoBehaviour
             return;
         }
 
-        // Проверка препятствий и обрывов.
         if (!CanMove(directionToPlayer))
         {
             PlayAnimation(idleAnimation);
@@ -423,10 +433,8 @@ public class MemorialGuardAI : MonoBehaviour
         int directionToPlayer =
             player.position.x >= transform.position.x ? 1 : -1;
 
-        // Движение строго от игрока.
         backDashDirection = -directionToPlayer;
 
-        // Страж смотрит на игрока, пока отступает.
         SetFacing(directionToPlayer);
 
         if (!CanMove(backDashDirection))
@@ -478,8 +486,6 @@ public class MemorialGuardAI : MonoBehaviour
         float distanceX = Mathf.Abs(differenceX);
         float distanceY = Mathf.Abs(player.position.y - transform.position.y);
 
-        // Длинная атака выполняется только если игрок
-        // находится в допустимом диапазоне.
         if (distanceX < longAttackMinRange ||
             distanceX > longAttackMaxRange ||
             distanceY > verticalDetectionTolerance)
@@ -555,6 +561,52 @@ public class MemorialGuardAI : MonoBehaviour
             else
                 EnterPatrolPause();
         }
+    }
+
+    private void UpdateHitReaction()
+    {
+        stateTimer += Time.deltaTime;
+
+        AnimatorStateInfo info = animator.GetCurrentAnimatorStateInfo(0);
+
+        bool finished =
+            info.IsName(hitReactionAnimation) &&
+            info.normalizedTime >= 1f;
+
+        if (finished || stateTimer >= hitReactionFallbackDuration)
+        {
+            if (hasTarget)
+                EnterState(State.Chase);
+            else
+                EnterPatrolPause();
+        }
+    }
+
+    // Вызывается из EnemyHealth при получении урона.
+    public void OnDamaged()
+    {
+        if (currentState == State.HitReaction)
+            return;
+
+        if (player != null)
+        {
+            hitKnockbackDirection =
+                player.position.x >= transform.position.x ? -1 : 1;
+        }
+        else
+        {
+            hitKnockbackDirection = -facingDirection;
+        }
+
+        stateTimer = 0f;
+
+        hitKnockbackEndTime =
+            Time.time + hitKnockbackDuration;
+
+        shouldLongAttackAfterDash = false;
+
+        EnterState(State.HitReaction);
+        PlayAnimation(hitReactionAnimation);
     }
 
     private void EnterState(State newState)

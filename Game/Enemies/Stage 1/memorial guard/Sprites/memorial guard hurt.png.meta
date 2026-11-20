@@ -144,14 +144,14 @@ TextureImporter:
         width: 28
         height: 24
       alignment: 9
-      pivot: {x: 0.7152274, y: 0.22693022}
+      pivot: {x: 0.704466, y: 0.22693022}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 7841174a31e53114c88e5ab4bcb8a4a7
-      internalID: -337650145
+      spriteID: f60e8d419584ca04da72a31bcf8d66a0
+      internalID: -258093969
       vertices: []
       indices: 
       edges: []
@@ -165,14 +165,14 @@ TextureImporter:
         width: 14
         height: 26
       alignment: 9
-      pivot: {x: 0.5215225, y: 0.26821658}
+      pivot: {x: 0.51076126, y: 0.27980578}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 824ad4a97586be54299b72f119a7b2ce
-      internalID: 13209052
+      spriteID: adc233d385b3596458334aec811a2165
+      internalID: 845782787
       vertices: []
       indices: 
       edges: []
@@ -186,14 +186,14 @@ TextureImporter:
         width: 25
         height: 26
       alignment: 9
-      pivot: {x: 0.23182648, y: 0.2711139}
+      pivot: {x: 0.19265503, y: 0.27980578}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 51870765183219c438a4e5ed654f9794
-      internalID: 2056941025
+      spriteID: 09cbde501a9880940ac04ad620fa39d1
+      internalID: 1533517051
       vertices: []
       indices: 
       edges: []
@@ -209,9 +209,9 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     nameFileIdTable:
-      memorial guard hurt_0: -337650145
-      memorial guard hurt_1: 13209052
-      memorial guard hurt_2: 2056941025
+      memorial guard hurt_0: -258093969
+      memorial guard hurt_1: 845782787
+      memorial guard hurt_2: 1533517051
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
