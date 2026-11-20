@@ -330,16 +330,6 @@ public class MemorialGuardAI : MonoBehaviour
             return;
         }
 
-        if (distanceX >= longAttackMinRange &&
-            distanceX <= longAttackMaxRange &&
-            distanceY <= verticalDetectionTolerance &&
-            Time.time >= nextLongAttackTime &&
-            Time.time >= nextBackDashTime)
-        {
-            if (StartBackDash(BackDashPurpose.PrepareLongAttack))
-                return;
-        }
-
         if (!CanMove(direction))
         {
             PlayAnimation(idleAnimation);
@@ -427,6 +417,7 @@ public class MemorialGuardAI : MonoBehaviour
         }
     }
 
+
     private void UpdateLongAttack()
     {
         stateTimer += Time.deltaTime;
@@ -436,10 +427,11 @@ public class MemorialGuardAI : MonoBehaviour
 
         if (finished || stateTimer >= longAttackAnimationDuration)
         {
-            nextAttackTime = Time.time + attackCooldown;
-            EnterState(State.AfterAttack);
+            EnterState(State.Chase);
+            PlayAnimation(patrolAnimation);
         }
     }
+
 
     private void UpdateAfterAttack()
     {
