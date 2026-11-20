@@ -1,0 +1,82 @@
+PROJECT UPDATES — HANDOFF NOTES
+Repository: qwempty123/Assets
+Branch: main
+Last updated: 2026-11-20
+
+PURPOSE
+This file is the quick handoff log for future ChatGPT sessions. Read this file first, then Documentation/DEVELOPMENT_LOG.md and the current source files before making further changes. GitHub main is the source of truth; do not assume local Unity Inspector settings or scene references are known unless the user confirms them.
+
+CURRENT TASK: MEMORIAL GUARD COMBAT
+
+Implemented in code (Unity playtest still required):
+1. MemorialGuardAI now has Patrol, Chase, BackDash, Attack, LongAttack and AfterAttack states.
+2. MG_BackDash is used both as a dodge and as the retreat before MG_LongAttack.
+3. MG_LongAttack is a forward lunge with timed Rigidbody2D movement.
+4. Ground and wall checks are used before/during dash and lunge movement to avoid intentionally crossing ledges or walls.
+5. Normal MG_Attack1 applies 1 damage through AnimationEvent_MeleeHit.
+6. MG_LongAttack applies 2 damage through AnimationEvent_LongAttackHit.
+7. PlayerHealth.cs adds player HP (default 5), damage reception, temporary invulnerability, damage flash, and disables PlayerMovement/PlayerCombat at 0 HP.
+8. Animation events were added to the clips:
+   - MG_Attack1.anim: AnimationEvent_MeleeHit at 0.53333336 seconds.
+   - MG_LongAttack.anim: AnimationEvent_LongAttackHit at 0.4 seconds.
+   These timestamps are initial placements and MUST be checked against the actual weapon-contact frames in Unity's Animation window.
+
+IMPORTANT ANIMATOR NAMES
+- MG_idle
+- MG_Patrol
+- MG_Attack1
+- MG_BackDash
+- MG_LongAttack
+- MG_afterAttack
+
+The after-attack state uses lowercase 'a' in afterAttack. Unity Animator state names are case-sensitive. MemorialGuardAI was updated to use MG_afterAttack.
+
+DO NOT IMPLEMENT YET
+- MG_WalkOnPlayer does not exist yet. The user explicitly asked to postpone it. Continue using MG_Patrol for chase movement until the user draws and imports the new animation.
+
+UNITY SETUP / TEST CHECKLIST
+1. Add PlayerHealth component to the player's root GameObject.
+2. PlayerHealth, PlayerMovement and PlayerCombat are expected on the same root object. If the project hierarchy differs, adjust component lookup intentionally.
+3. Assign the Player Transform in MemorialGuardAI.
+4. Assign Ground Layer (platform/ground layers) and Vision Blockers in MemorialGuardAI Inspector.
+5. Confirm the Animator Controller contains the exact state names listed above.
+6. Open MG_Attack1 and MG_LongAttack in the Animation window. Confirm the Animation Events are present and move their timestamps to the actual hammer-contact frames if needed.
+7. Confirm Animation Events invoke the public methods on the same GameObject that owns the Animator:
+   - AnimationEvent_MeleeHit
+   - AnimationEvent_LongAttackHit
+8. Test ordinary attack damage, lunge damage, player invulnerability frames, and 0 HP behavior.
+9. Test back dash and lunge next to walls, platform edges, and gaps. Tune distances/speeds in Inspector.
+10. The death flow is intentionally incomplete: at 0 HP controls are disabled and a Console message is logged. No Game Over screen, respawn, or death animation exists yet.
+
+DEFAULT TUNING VALUES
+- Player max HP: 5
+- Player invulnerability: 0.75 s
+- Guard melee damage: 1
+- Guard long-attack damage: 2
+- Guard dodge chance: 0.45
+- Guard back-dash movement: 5 units/s for 0.24 s
+- Guard back-dash animation wait: 0.7 s
+- Guard long-attack lunge: 5.5 units/s for 0.25 s
+- Guard long-attack cooldown: 4.5 s
+- Long attack selection range: 1.8 to 3.6 units
+All are serialized defaults; tune after playtesting.
+
+FILES CHANGED FOR THIS TASK
+- Game/Enemies/Stage 1/memorial guard/Scripts/MemorialGuardAI.cs
+- Game/Player/Scripts/PlayerHealth.cs (new)
+- Game/Enemies/Stage 1/memorial guard/Animations/MG_Attack1.anim
+- Game/Enemies/Stage 1/memorial guard/Animations/MG_LongAttack.anim
+- Documentation/GAME_DESIGN.md
+- Documentation/DEVELOPMENT_LOG.md
+- Documentation/CHARACTERS.md
+- Documentation/README.md
+
+NEXT STEPS
+1. Ask the user to test the current implementation in Unity and report Console errors or unexpected behavior.
+2. Fix issues found in the playtest before adding more enemy behavior.
+3. Do not add MG_WalkOnPlayer until the user says the animation is ready.
+4. Keep this file and DEVELOPMENT_LOG.md updated after every substantial implementation.
+5. Do not claim Unity testing has passed unless the user confirms an actual playtest.
+
+WORKING RULE
+Before changing project files, fetch the current version from GitHub main. Preserve unrelated user changes. After editing, update this file and the relevant documentation so a new chat can continue without relying on chat history.
