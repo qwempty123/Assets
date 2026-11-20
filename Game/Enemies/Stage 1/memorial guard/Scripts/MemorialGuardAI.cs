@@ -53,6 +53,8 @@ public class MemorialGuardAI : MonoBehaviour
     [Header("Dodge")]
     [SerializeField, Range(0f, 1f)] private float dodgeChance = 0.45f;
     [SerializeField] private float dodgeDetectionRange = 2.2f;
+    [SerializeField, Range(0f, 1f)]
+    private float longAttackFollowUpChance = 0.5f;
 
     [Header("Long Attack")]
     [SerializeField] private float longAttackMinRange = 1.8f;
@@ -100,6 +102,8 @@ public class MemorialGuardAI : MonoBehaviour
     private float blockedChaseTimer;
     private float backDashMoveEndTime;
     private float longAttackMoveEndTime;
+    private int backDashDirection;
+    private bool shouldLongAttackAfterDash;
 
     private bool isPatrolPaused;
     private bool hasTarget;
@@ -164,11 +168,10 @@ public class MemorialGuardAI : MonoBehaviour
     {
         float horizontalVelocity = moveDirection * currentMoveSpeed;
 
-        if (currentState == State.BackDash &&
-            Time.time < backDashMoveEndTime)
+        if (currentState == State.BackDash && Time.time < backDashMoveEndTime)
         {
-            if (CanMove(-facingDirection))
-                horizontalVelocity = -facingDirection * backDashSpeed;
+            if (CanMove(backDashDirection))
+                horizontalVelocity = backDashDirection * backDashSpeed;
         }
         else if (currentState == State.LongAttack &&
                  Time.time < longAttackMoveEndTime)
@@ -312,31 +315,45 @@ public class MemorialGuardAI : MonoBehaviour
             playerCombat = player.GetComponent<PlayerCombat>();
 
         // Уклонение от атаки игрока.
-        bool playerIsAttacking =
-            playerCombat != null && playerCombat.IsAttacking;
+        bool playerIsAttacking = playerCombat != null && playerCombat.IsAttacking;
 
         if (!playerIsAttacking)
+        {
             observedPlayerAttack = false;
+        }
 
+        // Сценарий 1: игрок атакует рядом.
+        // Шанс BackDash — 45%.
+        // После рывка LongAttack запускается с отдельным шансом.
         if (playerIsAttacking &&
             !observedPlayerAttack &&
             distanceX <= dodgeDetectionRange &&
+            distanceY <= verticalDetectionTolerance &&
             Time.time >= nextDodgeTime)
         {
             observedPlayerAttack = true;
 
-            if (Random.value <= dodgeChance && StartBackDash())
-                return;
+            if (Random.value <= dodgeChance)
+            {
+                bool followUp = Random.value <= longAttackFollowUpChance;
+
+                if (StartBackDash(followUp))
+                    return;
+            }
         }
 
-        // Длинная атака. Не требует предварительного BackDash.
-        if (distanceX >= longAttackMinRange &&
-            distanceX <= longAttackMaxRange &&
+        // Сценарий 2: игрок рядом, но не атакует.
+        // Шанс 10%: BackDash, затем LongAttack.
+        if (!playerIsAttacking &&
+            distanceX <= attackRange &&
             distanceY <= verticalDetectionTolerance &&
-            Time.time >= nextLongAttackTime)
+            Time.time >= nextDodgeTime)
         {
-            if (StartLongAttack())
-                return;
+            if (Random.value <= 0.10f)
+            {
+                if (StartBackDash(true))
+                    return;
+            }
         }
 
         // Обычная атака.
@@ -373,7 +390,7 @@ public class MemorialGuardAI : MonoBehaviour
         currentMoveSpeed = chaseSpeed;
     }
 
-    private bool StartBackDash()
+    private bool StartBackDash(bool followUpLongAttack)
     {
         if (player == null)
             return false;
@@ -381,20 +398,46 @@ public class MemorialGuardAI : MonoBehaviour
         int directionToPlayer =
             player.position.x >= transform.position.x ? 1 : -1;
 
+        // Страж смотрит на игрока.
         SetFacing(directionToPlayer);
 
-        int retreatDirection = -directionToPlayer;
+        // Но физически движется в противоположную сторону.
+        backDashDirection = -directionToPlayer;
 
-        if (!CanMove(retreatDirection))
+        if (!CanMove(backDashDirection))
             return false;
 
-        stateTimer = 0f;
+        shouldLongAttackAfterDash = followUpLongAttack;
 
+        stateTimer = 0f;
         backDashMoveEndTime = Time.time + backDashMoveDuration;
         nextDodgeTime = Time.time + backDashCooldown;
 
         EnterState(State.BackDash);
         PlayAnimation(backDashAnimation);
+
+        return true;
+    }
+
+    private bool StartLongAttack()
+    {
+        if (player == null)
+            return false;
+
+        float differenceX = player.position.x - transform.position.x;
+        int direction = differenceX >= 0f ? 1 : -1;
+
+        SetFacing(direction);
+
+        if (!CanMove(direction))
+            return false;
+
+        stateTimer = 0f;
+        longAttackMoveEndTime = Time.time + longAttackLungeDuration;
+        nextLongAttackTime = Time.time + longAttackCooldown;
+
+        EnterState(State.LongAttack);
+        PlayAnimation(longAttackAnimation);
 
         return true;
     }
@@ -405,7 +448,16 @@ public class MemorialGuardAI : MonoBehaviour
 
         if (stateTimer >= backDashAnimationDuration)
         {
-            EnterState(State.Chase);
+            if (shouldLongAttackAfterDash)
+            {
+                shouldLongAttackAfterDash = false;
+
+                StartLongAttack();
+            }
+            else
+            {
+                EnterState(State.Chase);
+            }
         }
     }
 
