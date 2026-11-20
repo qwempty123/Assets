@@ -17,11 +17,6 @@ public class MemorialGuardAI : MonoBehaviour
         AfterAttack
     }
 
-    private enum BackDashPurpose
-    {
-        Dodge,
-        PrepareLongAttack
-    }
 
     [Header("Player")]
     [SerializeField] private Transform player;
@@ -92,7 +87,6 @@ public class MemorialGuardAI : MonoBehaviour
     private PlayerCombat playerCombat;
 
     private State currentState;
-    private BackDashPurpose backDashPurpose;
 
     private readonly HashSet<PlayerHealth> hitPlayers = new HashSet<PlayerHealth>();
 
@@ -105,7 +99,6 @@ public class MemorialGuardAI : MonoBehaviour
     private float pauseTimer;
     private float stateTimer;
     private float nextAttackTime;
-    private float nextBackDashTime;
     private float nextLongAttackTime;
     private float nextDodgeTime;
     private float blockedChaseTimer;
@@ -315,7 +308,7 @@ public class MemorialGuardAI : MonoBehaviour
             observedPlayerAttack = true;
 
             if (Random.value <= dodgeChance &&
-                StartBackDash(BackDashPurpose.Dodge))
+                StartBackDash())
                 return;
         }
 
@@ -347,7 +340,8 @@ public class MemorialGuardAI : MonoBehaviour
         currentMoveSpeed = chaseSpeed;
     }
 
-    private bool StartBackDash(BackDashPurpose purpose)
+
+    private bool StartBackDash()
     {
         if (player == null)
             return false;
@@ -357,51 +351,32 @@ public class MemorialGuardAI : MonoBehaviour
 
         int retreatDirection = -directionToPlayer;
 
-        // Не начинаем рывок, если позади стена или пропасть.
         if (!CanMove(retreatDirection))
             return false;
 
-        backDashPurpose = purpose;
         stateTimer = 0f;
         backDashMoveEndTime = Time.time + backDashMoveDuration;
-        nextBackDashTime = Time.time + backDashCooldown;
-
-        if (purpose == BackDashPurpose.Dodge)
-            nextDodgeTime = Time.time + backDashCooldown;
+        nextDodgeTime = Time.time + backDashCooldown;
 
         EnterState(State.BackDash);
         PlayAnimation(backDashAnimation);
+
         return true;
     }
+
+
 
     private void UpdateBackDash()
     {
         stateTimer += Time.deltaTime;
 
-        if (stateTimer < backDashAnimationDuration)
-            return;
-
-        if (backDashPurpose == BackDashPurpose.PrepareLongAttack && player != null)
+        if (stateTimer >= backDashAnimationDuration)
         {
-            // Перед выпадом снова фиксируем направление на игрока.
-            int direction = player.position.x >= transform.position.x ? 1 : -1;
-            SetFacing(direction);
-
-            if (CanMove(direction))
-            {
-                stateTimer = 0f;
-                longAttackMoveEndTime = Time.time + longAttackLungeDuration;
-                longAttackHitRegistered = false;
-                hitPlayers.Clear();
-                nextLongAttackTime = Time.time + longAttackCooldown;
-                EnterState(State.LongAttack);
-                PlayAnimation(longAttackAnimation);
-                return;
-            }
+            EnterState(State.Chase);
+            PlayAnimation(patrolAnimation);
         }
-
-        EnterState(State.AfterAttack);
     }
+
 
     private void UpdateAttack()
     {
