@@ -307,8 +307,8 @@ public class MemorialGuardAI : MonoBehaviour
             Time.time >= nextDodgeTime &&
             Random.value <= dodgeChance)
         {
-            StartBackDash(BackDashPurpose.Dodge);
-            return;
+            if (StartBackDash(BackDashPurpose.Dodge))
+                return;
         }
 
         if (distanceX <= attackRange && distanceY <= verticalDetectionTolerance)
@@ -328,8 +328,8 @@ public class MemorialGuardAI : MonoBehaviour
             Time.time >= nextLongAttackTime &&
             Time.time >= nextBackDashTime)
         {
-            StartBackDash(BackDashPurpose.PrepareLongAttack);
-            return;
+            if (StartBackDash(BackDashPurpose.PrepareLongAttack))
+                return;
         }
 
         if (!CanMove(direction))
@@ -349,10 +349,10 @@ public class MemorialGuardAI : MonoBehaviour
         currentMoveSpeed = chaseSpeed;
     }
 
-    private void StartBackDash(BackDashPurpose purpose)
+    private bool StartBackDash(BackDashPurpose purpose)
     {
         if (player == null)
-            return;
+            return false;
 
         int directionToPlayer = player.position.x >= transform.position.x ? 1 : -1;
         SetFacing(directionToPlayer);
@@ -361,7 +361,7 @@ public class MemorialGuardAI : MonoBehaviour
 
         // Не начинаем рывок, если позади стена или пропасть.
         if (!CanMove(retreatDirection))
-            return;
+            return false;
 
         backDashPurpose = purpose;
         stateTimer = 0f;
@@ -373,6 +373,7 @@ public class MemorialGuardAI : MonoBehaviour
 
         EnterState(State.BackDash);
         PlayAnimation(backDashAnimation);
+        return true;
     }
 
     private void UpdateBackDash()
