@@ -1,4 +1,3 @@
-
 using System.Collections;
 using UnityEngine;
 
@@ -9,6 +8,10 @@ public class EnemyHealth : MonoBehaviour
 
     [Header("Damage Flash")]
     [SerializeField] private float flashDuration = 0.12f;
+
+    [Header("Blood Particles")]
+    [SerializeField] private ParticleSystem bloodEffectPrefab;
+    [SerializeField] private Vector2 bloodEffectOffset = new Vector2(0f, 0.2f);
 
     private int currentHealth;
 
@@ -42,6 +45,7 @@ public class EnemyHealth : MonoBehaviour
         );
 
         FlashWhite();
+        SpawnBloodEffect();
 
         if (currentHealth <= 0)
             Die();
@@ -68,6 +72,33 @@ public class EnemyHealth : MonoBehaviour
         spriteRenderer.color = originalColor;
 
         flashCoroutine = null;
+    }
+
+    private void SpawnBloodEffect()
+    {
+        if (bloodEffectPrefab == null)
+            return;
+
+        Vector3 spawnPosition = transform.position;
+
+        if (spriteRenderer != null)
+            spawnPosition = spriteRenderer.bounds.center;
+
+        spawnPosition += (Vector3)bloodEffectOffset;
+
+        ParticleSystem blood = Instantiate(
+            bloodEffectPrefab,
+            spawnPosition,
+            Quaternion.identity
+        );
+
+        blood.Play();
+
+        ParticleSystem.MainModule main = blood.main;
+
+        float lifetime = main.duration + main.startLifetime.constantMax;
+
+        Destroy(blood.gameObject, lifetime + 0.2f);
     }
 
     private void Die()
