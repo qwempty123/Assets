@@ -22,11 +22,11 @@ AnimationClip:
     curve:
     - time: 0
       value: {fileID: 256378630, guid: 1234e3127b12e464cb70fe0c3444eb3e, type: 3}
-    - time: 0.11666667
+    - time: 0.083333336
       value: {fileID: 1008224592, guid: 1234e3127b12e464cb70fe0c3444eb3e, type: 3}
-    - time: 0.2
+    - time: 0.15
       value: {fileID: -435162860, guid: 1234e3127b12e464cb70fe0c3444eb3e, type: 3}
-    - time: 0.33333334
+    - time: 0.25
       value: {fileID: 2021375130, guid: 1234e3127b12e464cb70fe0c3444eb3e, type: 3}
     attribute: m_Sprite
     path: 
@@ -59,7 +59,7 @@ AnimationClip:
     m_AdditiveReferencePoseClip: {fileID: 0}
     m_AdditiveReferencePoseTime: 0
     m_StartTime: 0
-    m_StopTime: 0.35000002
+    m_StopTime: 0.26666668
     m_OrientationOffsetY: 0
     m_Level: 0
     m_CycleOffset: 0
@@ -86,14 +86,14 @@ AnimationClip:
     floatParameter: 0
     intParameter: 0
     messageOptions: 0
-  - time: 0.2
+  - time: 0.15
     functionName: EnableHitbox
     data: 
     objectReferenceParameter: {fileID: 0}
     floatParameter: 0
     intParameter: 0
     messageOptions: 0
-  - time: 0.33333334
+  - time: 0.25
     functionName: DisableHitbox
     data: 
     objectReferenceParameter: {fileID: 0}
