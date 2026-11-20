@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -16,7 +16,6 @@ public class MemorialGuardAI : MonoBehaviour
         LongAttack,
         AfterAttack
     }
-
 
     [Header("Player")]
     [SerializeField] private Transform player;
@@ -41,11 +40,9 @@ public class MemorialGuardAI : MonoBehaviour
 
     [Header("Melee Attack")]
     [SerializeField] private float attackRange = 1.35f;
-    [SerializeField] private int meleeDamage = 1;
-    [SerializeField] private Vector2 meleeHitboxSize = new Vector2(1.1f, 0.9f);
-    [SerializeField] private float meleeHitboxForwardOffset = 0.65f;
     [SerializeField] private float attackCooldown = 1.2f;
     [SerializeField] private float attackFallbackDuration = 0.8f;
+    [SerializeField] private EnemyAttackHitbox meleeHitbox;
 
     [Header("Back Dash")]
     [SerializeField] private float backDashSpeed = 5f;
@@ -64,9 +61,7 @@ public class MemorialGuardAI : MonoBehaviour
     [SerializeField] private float longAttackAnimationDuration = 0.72f;
     [SerializeField] private float longAttackLungeSpeed = 5.5f;
     [SerializeField] private float longAttackLungeDuration = 0.25f;
-    [SerializeField] private int longAttackDamage = 2;
-    [SerializeField] private Vector2 longAttackHitboxSize = new Vector2(1.5f, 1.1f);
-    [SerializeField] private float longAttackHitboxForwardOffset = 0.9f;
+    [SerializeField] private EnemyAttackHitbox longAttackHitbox;
 
     [Header("Recovery")]
     [SerializeField] private float afterAttackFallbackDuration = 0.8f;
@@ -88,9 +83,8 @@ public class MemorialGuardAI : MonoBehaviour
 
     private State currentState;
 
-    private readonly HashSet<PlayerHealth> hitPlayers = new HashSet<PlayerHealth>();
-
     private Vector2 startPosition;
+
     private int patrolDirection = 1;
     private int moveDirection;
     private int facingDirection = 1;
@@ -98,17 +92,19 @@ public class MemorialGuardAI : MonoBehaviour
     private float currentMoveSpeed;
     private float pauseTimer;
     private float stateTimer;
+
     private float nextAttackTime;
     private float nextLongAttackTime;
     private float nextDodgeTime;
+
     private float blockedChaseTimer;
     private float backDashMoveEndTime;
     private float longAttackMoveEndTime;
 
     private bool isPatrolPaused;
     private bool hasTarget;
-    private bool longAttackHitRegistered;
     private bool observedPlayerAttack;
+
     private string currentAnimation;
 
     private void Awake()
@@ -117,6 +113,7 @@ public class MemorialGuardAI : MonoBehaviour
         animator = GetComponent<Animator>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         bodyCollider = GetComponent<BoxCollider2D>();
+
         startPosition = transform.position;
 
         if (player != null)
@@ -140,18 +137,23 @@ public class MemorialGuardAI : MonoBehaviour
             case State.Patrol:
                 UpdatePatrol();
                 break;
+
             case State.Chase:
                 UpdateChase();
                 break;
+
             case State.BackDash:
                 UpdateBackDash();
                 break;
+
             case State.Attack:
                 UpdateAttack();
                 break;
+
             case State.LongAttack:
                 UpdateLongAttack();
                 break;
+
             case State.AfterAttack:
                 UpdateAfterAttack();
                 break;
@@ -162,12 +164,14 @@ public class MemorialGuardAI : MonoBehaviour
     {
         float horizontalVelocity = moveDirection * currentMoveSpeed;
 
-        if (currentState == State.BackDash && Time.time < backDashMoveEndTime)
+        if (currentState == State.BackDash &&
+            Time.time < backDashMoveEndTime)
         {
             if (CanMove(-facingDirection))
                 horizontalVelocity = -facingDirection * backDashSpeed;
         }
-        else if (currentState == State.LongAttack && Time.time < longAttackMoveEndTime)
+        else if (currentState == State.LongAttack &&
+                 Time.time < longAttackMoveEndTime)
         {
             if (CanMove(facingDirection))
                 horizontalVelocity = facingDirection * longAttackLungeSpeed;
@@ -206,7 +210,9 @@ public class MemorialGuardAI : MonoBehaviour
 
         if (distance > loseTargetRange ||
             verticalDistance > verticalDetectionTolerance * 1.5f)
+        {
             LoseTarget();
+        }
     }
 
     private bool CanSeePlayer()
@@ -221,14 +227,21 @@ public class MemorialGuardAI : MonoBehaviour
         Vector2 direction = ((Vector2)player.position - origin).normalized;
         float distance = Vector2.Distance(origin, player.position);
 
-        return Physics2D.Raycast(origin, direction, distance, visionBlockers).collider == null;
+        return Physics2D.Raycast(
+            origin,
+            direction,
+            distance,
+            visionBlockers
+        ).collider == null;
     }
 
     private void LoseTarget()
     {
         hasTarget = false;
         blockedChaseTimer = 0f;
+
         patrolDirection = transform.position.x >= startPosition.x ? -1 : 1;
+
         EnterPatrolPause();
     }
 
@@ -237,11 +250,13 @@ public class MemorialGuardAI : MonoBehaviour
         if (isPatrolPaused)
         {
             pauseTimer -= Time.deltaTime;
+
             if (pauseTimer <= 0f)
             {
                 isPatrolPaused = false;
                 PlayAnimation(patrolAnimation);
             }
+
             return;
         }
 
@@ -263,6 +278,7 @@ public class MemorialGuardAI : MonoBehaviour
         }
 
         SetFacing(patrolDirection);
+
         moveDirection = patrolDirection;
         currentMoveSpeed = patrolSpeed;
     }
@@ -271,6 +287,7 @@ public class MemorialGuardAI : MonoBehaviour
     {
         isPatrolPaused = true;
         pauseTimer = Random.Range(minPauseTime, maxPauseTime);
+
         EnterState(State.Patrol);
         PlayAnimation(idleAnimation);
     }
@@ -286,6 +303,7 @@ public class MemorialGuardAI : MonoBehaviour
         float differenceX = player.position.x - transform.position.x;
         float distanceX = Mathf.Abs(differenceX);
         float distanceY = Mathf.Abs(player.position.y - transform.position.y);
+
         int direction = differenceX >= 0f ? 1 : -1;
 
         SetFacing(direction);
@@ -293,9 +311,9 @@ public class MemorialGuardAI : MonoBehaviour
         if (playerCombat == null)
             playerCombat = player.GetComponent<PlayerCombat>();
 
-        // Уворот от атаки игрока. Перезарядка не позволяет уклоняться
-        // несколько раз в течение одной и той же атаки.
-        bool playerIsAttacking = playerCombat != null && playerCombat.IsAttacking;
+        // Уклонение от атаки игрока.
+        bool playerIsAttacking =
+            playerCombat != null && playerCombat.IsAttacking;
 
         if (!playerIsAttacking)
             observedPlayerAttack = false;
@@ -307,12 +325,23 @@ public class MemorialGuardAI : MonoBehaviour
         {
             observedPlayerAttack = true;
 
-            if (Random.value <= dodgeChance &&
-                StartBackDash())
+            if (Random.value <= dodgeChance && StartBackDash())
                 return;
         }
 
-        if (distanceX <= attackRange && distanceY <= verticalDetectionTolerance)
+        // Длинная атака. Не требует предварительного BackDash.
+        if (distanceX >= longAttackMinRange &&
+            distanceX <= longAttackMaxRange &&
+            distanceY <= verticalDetectionTolerance &&
+            Time.time >= nextLongAttackTime)
+        {
+            if (StartLongAttack())
+                return;
+        }
+
+        // Обычная атака.
+        if (distanceX <= attackRange &&
+            distanceY <= verticalDetectionTolerance)
         {
             blockedChaseTimer = 0f;
             PlayAnimation(idleAnimation);
@@ -323,9 +352,11 @@ public class MemorialGuardAI : MonoBehaviour
             return;
         }
 
+        // Проверка препятствий и обрывов.
         if (!CanMove(direction))
         {
             PlayAnimation(idleAnimation);
+
             blockedChaseTimer += Time.deltaTime;
 
             if (blockedChaseTimer >= blockedChaseTimeout)
@@ -335,18 +366,21 @@ public class MemorialGuardAI : MonoBehaviour
         }
 
         blockedChaseTimer = 0f;
+
         PlayAnimation(patrolAnimation);
+
         moveDirection = direction;
         currentMoveSpeed = chaseSpeed;
     }
-
 
     private bool StartBackDash()
     {
         if (player == null)
             return false;
 
-        int directionToPlayer = player.position.x >= transform.position.x ? 1 : -1;
+        int directionToPlayer =
+            player.position.x >= transform.position.x ? 1 : -1;
+
         SetFacing(directionToPlayer);
 
         int retreatDirection = -directionToPlayer;
@@ -355,6 +389,7 @@ public class MemorialGuardAI : MonoBehaviour
             return false;
 
         stateTimer = 0f;
+
         backDashMoveEndTime = Time.time + backDashMoveDuration;
         nextDodgeTime = Time.time + backDashCooldown;
 
@@ -364,8 +399,6 @@ public class MemorialGuardAI : MonoBehaviour
         return true;
     }
 
-
-
     private void UpdateBackDash()
     {
         stateTimer += Time.deltaTime;
@@ -373,17 +406,41 @@ public class MemorialGuardAI : MonoBehaviour
         if (stateTimer >= backDashAnimationDuration)
         {
             EnterState(State.Chase);
-            PlayAnimation(patrolAnimation);
         }
     }
 
+    private bool StartLongAttack()
+    {
+        if (player == null)
+            return false;
+
+        int direction =
+            player.position.x >= transform.position.x ? 1 : -1;
+
+        SetFacing(direction);
+
+        if (!CanMove(direction))
+            return false;
+
+        stateTimer = 0f;
+
+        longAttackMoveEndTime = Time.time + longAttackLungeDuration;
+        nextLongAttackTime = Time.time + longAttackCooldown;
+
+        EnterState(State.LongAttack);
+        PlayAnimation(longAttackAnimation);
+
+        return true;
+    }
 
     private void UpdateAttack()
     {
         stateTimer += Time.deltaTime;
 
         AnimatorStateInfo info = animator.GetCurrentAnimatorStateInfo(0);
-        bool finished = info.IsName(attackAnimation) && info.normalizedTime >= 1f;
+
+        bool finished =
+            info.IsName(attackAnimation) && info.normalizedTime >= 1f;
 
         if (finished || stateTimer >= attackFallbackDuration)
         {
@@ -392,28 +449,29 @@ public class MemorialGuardAI : MonoBehaviour
         }
     }
 
-
     private void UpdateLongAttack()
     {
         stateTimer += Time.deltaTime;
 
         AnimatorStateInfo info = animator.GetCurrentAnimatorStateInfo(0);
-        bool finished = info.IsName(longAttackAnimation) && info.normalizedTime >= 1f;
+
+        bool finished =
+            info.IsName(longAttackAnimation) && info.normalizedTime >= 1f;
 
         if (finished || stateTimer >= longAttackAnimationDuration)
         {
             EnterState(State.Chase);
-            PlayAnimation(patrolAnimation);
         }
     }
-
 
     private void UpdateAfterAttack()
     {
         stateTimer += Time.deltaTime;
 
         AnimatorStateInfo info = animator.GetCurrentAnimatorStateInfo(0);
-        bool finished = info.IsName(afterAttackAnimation) && info.normalizedTime >= 1f;
+
+        bool finished =
+            info.IsName(afterAttackAnimation) && info.normalizedTime >= 1f;
 
         if (finished || stateTimer >= afterAttackFallbackDuration)
         {
@@ -426,15 +484,23 @@ public class MemorialGuardAI : MonoBehaviour
 
     private void EnterState(State newState)
     {
+        DisableAllHitboxes();
+
         currentState = newState;
         stateTimer = 0f;
+
         moveDirection = 0;
         currentMoveSpeed = 0f;
 
-        if (newState == State.Attack && player != null)
+        if (newState == State.Attack)
         {
-            SetFacing(player.position.x >= transform.position.x ? 1 : -1);
-            hitPlayers.Clear();
+            if (player != null)
+            {
+                SetFacing(
+                    player.position.x >= transform.position.x ? 1 : -1
+                );
+            }
+
             PlayAnimation(attackAnimation);
         }
         else if (newState == State.AfterAttack)
@@ -447,37 +513,39 @@ public class MemorialGuardAI : MonoBehaviour
         }
     }
 
-    // Добавить Animation Event в MG_Attack1 на кадр контакта оружия.
-    public void AnimationEvent_MeleeHit()
+    // Animation Events: обычная атака.
+    public void EnableMeleeHitbox()
     {
-        DealDamageInFront(meleeDamage, meleeHitboxSize, meleeHitboxForwardOffset);
+        if (currentState == State.Attack && meleeHitbox != null)
+            meleeHitbox.EnableHitbox();
     }
 
-    // Добавить Animation Event в MG_LongAttack на кадр контакта во время выпада.
-    public void AnimationEvent_LongAttackHit()
+    public void DisableMeleeHitbox()
     {
-        if (currentState != State.LongAttack || longAttackHitRegistered)
-            return;
-
-        longAttackHitRegistered = true;
-        DealDamageInFront(longAttackDamage, longAttackHitboxSize, longAttackHitboxForwardOffset);
+        if (meleeHitbox != null)
+            meleeHitbox.DisableHitbox();
     }
 
-    private void DealDamageInFront(int damage, Vector2 hitboxSize, float forwardOffset)
+    // Animation Events: длинная атака.
+    public void EnableLongAttackHitbox()
     {
-        Vector2 center = bodyCollider.bounds.center;
-        center.x += facingDirection * forwardOffset;
+        if (currentState == State.LongAttack && longAttackHitbox != null)
+            longAttackHitbox.EnableHitbox();
+    }
 
-        Collider2D[] hits = Physics2D.OverlapBoxAll(center, hitboxSize, 0f);
+    public void DisableLongAttackHitbox()
+    {
+        if (longAttackHitbox != null)
+            longAttackHitbox.DisableHitbox();
+    }
 
-        foreach (Collider2D hit in hits)
-        {
-            PlayerHealth health = hit.GetComponentInParent<PlayerHealth>();
-            if (health == null || !hitPlayers.Add(health))
-                continue;
+    private void DisableAllHitboxes()
+    {
+        if (meleeHitbox != null)
+            meleeHitbox.DisableHitbox();
 
-            health.TakeDamage(damage);
-        }
+        if (longAttackHitbox != null)
+            longAttackHitbox.DisableHitbox();
     }
 
     private bool CanMove(int direction)
@@ -487,7 +555,10 @@ public class MemorialGuardAI : MonoBehaviour
 
         if (groundLayer.value == 0)
         {
-            Debug.LogWarning($"{gameObject.name}: Ground Layer не назначен!");
+            Debug.LogWarning(
+                $"{gameObject.name}: Ground Layer не назначен!"
+            );
+
             return false;
         }
 
@@ -497,9 +568,15 @@ public class MemorialGuardAI : MonoBehaviour
             ? bounds.max.x + 0.2f
             : bounds.min.x - 0.2f;
 
-        Vector2 groundOrigin = new Vector2(groundX, bounds.min.y + 0.05f);
+        Vector2 groundOrigin =
+            new Vector2(groundX, bounds.min.y + 0.05f);
+
         RaycastHit2D groundHit = Physics2D.Raycast(
-            groundOrigin, Vector2.down, groundCheckDistance, groundLayer);
+            groundOrigin,
+            Vector2.down,
+            groundCheckDistance,
+            groundLayer
+        );
 
         if (groundHit.collider == null)
             return false;
@@ -509,8 +586,13 @@ public class MemorialGuardAI : MonoBehaviour
             : bounds.min.x - 0.03f;
 
         Vector2 wallOrigin = new Vector2(sideX, bounds.center.y);
+
         RaycastHit2D wallHit = Physics2D.Raycast(
-            wallOrigin, Vector2.right * direction, wallCheckDistance, groundLayer);
+            wallOrigin,
+            Vector2.right * direction,
+            wallCheckDistance,
+            groundLayer
+        );
 
         return wallHit.collider == null;
     }
@@ -522,6 +604,12 @@ public class MemorialGuardAI : MonoBehaviour
 
         facingDirection = direction;
         spriteRenderer.flipX = direction < 0;
+
+        if (meleeHitbox != null)
+            meleeHitbox.SetFacingDirection(direction);
+
+        if (longAttackHitbox != null)
+            longAttackHitbox.SetFacingDirection(direction);
     }
 
     private void PlayAnimation(string animationName)
@@ -533,12 +621,20 @@ public class MemorialGuardAI : MonoBehaviour
 
         if (!animator.HasState(0, hash))
         {
-            Debug.LogWarning($"{gameObject.name}: Animator state not found: {animationName}");
+            Debug.LogWarning(
+                $"{gameObject.name}: Animator state not found: {animationName}"
+            );
+
             return;
         }
 
         currentAnimation = animationName;
         animator.Play(hash, 0, 0f);
+    }
+
+    private void OnDisable()
+    {
+        DisableAllHitboxes();
     }
 
     private void OnDrawGizmosSelected()
@@ -549,10 +645,15 @@ public class MemorialGuardAI : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
 
-        Vector3 center = Application.isPlaying ? (Vector3)startPosition : transform.position;
+        Vector3 center = Application.isPlaying
+            ? (Vector3)startPosition
+            : transform.position;
+
         Gizmos.color = Color.cyan;
+
         Gizmos.DrawLine(
             center + Vector3.left * patrolDistance,
-            center + Vector3.right * patrolDistance);
+            center + Vector3.right * patrolDistance
+        );
     }
 }
