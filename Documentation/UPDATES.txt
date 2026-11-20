@@ -80,3 +80,7 @@ NEXT STEPS
 
 WORKING RULE
 Before changing project files, fetch the current version from GitHub main. Preserve unrelated user changes. After editing, update this file and the relevant documentation so a new chat can continue without relying on chat history.
+FOLLOW-UP REFINEMENTS
+- Added Game/Player/Scripts/PlayerHealth.cs.meta so Unity can track the new script with a stable GUID.
+- Dodge chance is rolled once per observed player attack, rather than rerolling every frame.
+- AfterAttack fallback was raised to 0.8 s so the 0.683 s recovery clip can finish naturally.
