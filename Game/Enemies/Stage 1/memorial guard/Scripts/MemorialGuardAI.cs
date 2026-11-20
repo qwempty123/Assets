@@ -74,7 +74,7 @@ public class MemorialGuardAI : MonoBehaviour
     [SerializeField] private float longAttackHitboxForwardOffset = 0.9f;
 
     [Header("Recovery")]
-    [SerializeField] private float afterAttackFallbackDuration = 0.5f;
+    [SerializeField] private float afterAttackFallbackDuration = 0.8f;
     [SerializeField] private float blockedChaseTimeout = 1.5f;
 
     [Header("Animator States")]
@@ -115,6 +115,7 @@ public class MemorialGuardAI : MonoBehaviour
     private bool isPatrolPaused;
     private bool hasTarget;
     private bool longAttackHitRegistered;
+    private bool observedPlayerAttack;
     private string currentAnimation;
 
     private void Awake()
@@ -301,13 +302,20 @@ public class MemorialGuardAI : MonoBehaviour
 
         // Уворот от атаки игрока. Перезарядка не позволяет уклоняться
         // несколько раз в течение одной и той же атаки.
-        if (playerCombat != null &&
-            playerCombat.IsAttacking &&
+        bool playerIsAttacking = playerCombat != null && playerCombat.IsAttacking;
+
+        if (!playerIsAttacking)
+            observedPlayerAttack = false;
+
+        if (playerIsAttacking &&
+            !observedPlayerAttack &&
             distanceX <= dodgeDetectionRange &&
-            Time.time >= nextDodgeTime &&
-            Random.value <= dodgeChance)
+            Time.time >= nextDodgeTime)
         {
-            if (StartBackDash(BackDashPurpose.Dodge))
+            observedPlayerAttack = true;
+
+            if (Random.value <= dodgeChance &&
+                StartBackDash(BackDashPurpose.Dodge))
                 return;
         }
 
